@@ -44,6 +44,8 @@ class AE:
         # Initial conditions for accuracy and tolerance
         self.A = A
         self.tolerance = tolerance
+
+        
         
         # Perform search
         x1 = self.search(self.testA)
