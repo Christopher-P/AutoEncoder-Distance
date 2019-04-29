@@ -13,7 +13,7 @@ presented tests!
 #https://medium.com/datadriveninvestor/deep-autoencoder-using-keras-b77cd3e8be95
 
 import os
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # or any {'0', '1', '2'}
+#os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # or any {'0', '1', '2'}
 
 from keras.datasets import mnist
 from keras.layers import Input, Dense, Flatten
@@ -41,7 +41,7 @@ class Test:
         self.data = data
 
     def combine(self, dataA, dataB):
-        self.data = np.concatenate((dataA, dataB),axis=0)
+        self.data = np.concatenate((dataA, dataB),axis=1)
 
 class AE:
 
@@ -55,10 +55,10 @@ class AE:
         self.A = A
         self.tolerance = tolerance
 
-        t1 = Test(self.testA.size, None)
+        t1 = Test(self.testA.size + self.testA.size, None)
         t1.combine(self.testA.data, self.testA.data)
 
-        t2 = Test(self.testB.size, None)
+        t2 = Test(self.testB.size + self.testB.size, None)
         t2.combine(self.testB.data, self.testB.data)
         
         # Perform search
@@ -69,7 +69,7 @@ class AE:
         print('x1:', x1, ' x2:', x2)
         
         # Combine tests
-        t = Test(self.testA.size, None)
+        t = Test(self.testA.size + self.testA.size, None)
         t.combine(self.testA.data, self.testB.data)
 
         # Search combination of test
@@ -151,7 +151,8 @@ for i in range(10,11):
     np.random.shuffle(x_train)
 
     x_train1 = x_train[0:1000] / 255
-    x_train2 = x_train[i * 100: i * 100 + 1000] / 255
+    x_train2 = np.concatenate((x_train[0:1000 - (i * 100)], x_train[1000:1000 + (i * 100)]), axis=0)
+    x_train2 = x_train2 / 255
 
     print(x_train1.shape)
     print(x_train2.shape)
@@ -166,10 +167,10 @@ for i in range(10,11):
     hel = AE(t1,t2)
     res = hel.run(0.815, 1)
     x1, x2, x3 = res
-    fancy_logger(x1, x2, x3, 1.0 - i/10.0, file_name='data-v2')
+    fancy_logger(x1, x2, x3, 1.0 - i/10.0, file_name='data-v3')
 
     
     # Release memory
     #K.clear_session()
-    #exit()
+    exit()
 print(res)
