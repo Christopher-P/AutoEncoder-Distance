@@ -146,7 +146,7 @@ def fancy_logger(x1, x2, x3, overlap, file_name='data', write='a'):
 
 #print(y_train[0:100])
         
-for i in range(4,11):
+for i in range(10,11):
 
     np.random.shuffle(x_train)
 
