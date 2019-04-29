@@ -25,8 +25,8 @@ from tensorflow import set_random_seed
 
 from numba import cuda
 
-seed(3)
-set_random_seed(4)
+#seed(3)
+#set_random_seed(4)
 
 import numpy as np
 import pandas as pd
@@ -41,7 +41,7 @@ class Test:
         self.data = data
 
     def combine(self, dataA, dataB):
-        self.data = np.concatenate((dataA, dataB),axis=1)
+        self.data = np.concatenate((dataA, dataB),axis=0)
 
 class AE:
 
@@ -55,27 +55,27 @@ class AE:
         self.A = A
         self.tolerance = tolerance
 
-        t1 = Test(self.testA.size + self.testA.size, None)
+        t1 = Test(self.testA.size, None)
         t1.combine(self.testA.data, self.testA.data)
 
-        t2 = Test(self.testB.size + self.testB.size, None)
+        t2 = Test(self.testB.size, None)
         t2.combine(self.testB.data, self.testB.data)
         
         # Perform search
-        x1 = self.search(t1)
-        x2 = self.search(t2)
+        x1 =self.search(t1)
+        x2 =self.search(t2)
 
         # Output sofar
         print('x1:', x1, ' x2:', x2)
         
         # Combine tests
-        t = Test(self.testA.size + self.testB.size, None)
+        t = Test(self.testA.size, None)
         t.combine(self.testA.data, self.testB.data)
 
         # Search combination of test
         x3 = self.search(t)
 
-
+        print('x3: ', x3)
         # Return results
         return (x1, x2, x3)
 
@@ -146,7 +146,9 @@ def fancy_logger(x1, x2, x3, overlap, file_name='data', write='a'):
 
 #print(y_train[0:100])
         
-for i in range(2,11):
+for i in range(4,11):
+
+    np.random.shuffle(x_train)
 
     x_train1 = x_train[0:1000] / 255
     x_train2 = x_train[i * 100: i * 100 + 1000] / 255
@@ -164,10 +166,10 @@ for i in range(2,11):
     hel = AE(t1,t2)
     res = hel.run(0.815, 1)
     x1, x2, x3 = res
-    fancy_logger(x1, x2, x3, 1.0 - i/10.0, file_name='data')
+    fancy_logger(x1, x2, x3, 1.0 - i/10.0, file_name='data-v2')
 
     
     # Release memory
-    K.clear_session()
+    #K.clear_session()
     #exit()
 print(res)
