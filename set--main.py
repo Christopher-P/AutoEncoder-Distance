@@ -15,7 +15,7 @@ presented tests!
 import os
 #os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # or any {'0', '1', '2'}
 
-from keras.datasets import mnist
+from keras.datasets import mnist, cifar10, cifar100, fashion_mnist
 from keras.layers import Input, Dense, Flatten
 from keras.models import Model, Sequential
 from keras import backend as K
@@ -71,7 +71,7 @@ class AE:
         self.testB = testB        
         return None
 
-    def run(self, a1, a2, a3, tolerance):
+    def run(self, tolerance):
         # Initial conditions for accuracy and tolerance
         #self.A = A
         self.tolerance = tolerance
@@ -83,8 +83,8 @@ class AE:
         t2.combine(self.testB.data, self.testB.data)
         
         # Perform search
-        x1 =   self.search(t1, a1)
-        x2 =   self.search(t2, a2)
+        x1 =   self.search(t1)
+        x2 =   self.search(t2)
 
         # Output sofar
         print('x1:', x1, ' x2:', x2)
@@ -94,60 +94,27 @@ class AE:
         t.combine(self.testA.data, self.testB.data)
 
         # Search combination of test
-        x3 = self.search(t, a3)
+        x3 = self.search(t)
 
         print('x3: ', x3)
         # Return results
         return (x1, x2, x3)
 
-    def gen_model(self, test, x):
+    def gen_model(self, test):
         model = Sequential()
         model.add(Dense(test.size, activation='relu', input_shape=(test.size, )))
-        model.add(Dense(x, activation='relu'))
+        model.add(Dense(200, activation='relu'))
         model.add(Dense(test.size, activation='sigmoid'))
 
         model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
-        #model.summary()
         return model
 
-    def search(self, test, A):
-        # Initial Conditions
-        high = test.size
-        low = 1
-        done = False
+    def search(self, test):
+   
+        model = self.gen_model(test)
+        result = self.eval(test, model)
 
-        # for image ploooting
-        real = []
-        generated = []
-        n = 0
-
-        # Perform search
-        while not done:
-            print('high: ', high, ' low:', low)
-            # Test with midpoint
-            x = int((high + low)/2)
-            model = self.gen_model(test, x)
-            result = self.eval(test, model)
-            
-            # Check result
-            if result < A:
-                low = x
-            if result >= A:
-                high = x
-
-            # Check to tolerance level
-            if high - low <= self.tolerance:
-                done = True
-
-            real.append(test.data[0])
-            generated.append(self.model.predict(test.data)[0])
-            n = n + 1       
-
-            del result
-            del model
-
-        #ploot(n, real, generated)
-        return x
+        return result
 
 
     def eval(self, test, model):
@@ -155,8 +122,6 @@ class AE:
 
         n = max(history.history['acc'])
         print(n)
-
-        self.model = model
     
         return n
 
@@ -170,51 +135,86 @@ def fancy_logger(x1, x2, x3, overlap, file_name='data', write='a'):
                                 quotechar='|', quoting=csv.QUOTE_MINIMAL)
         spamwriter.writerow((x1, x2, x3, overlap))
 
-(x_train, y_train), (x_test, y_test) = mnist.load_data()
+(x_train_m, y_train), (x_test, y_test) = mnist.load_data()
+(x_train_c, y_train), (x_test, y_test) = cifar10.load_data()
+(x_train_c2, y_train), (x_test, y_test) = cifar100.load_data(label_mode='fine')
+(x_train_i, y_train), (x_test, y_test) = fashion_mnist.load_data()
 
-x_train1 = []
-x_train2 = []
-
-# Filter out 0 and 7
-for ind, val in enumerate(y_train):
-    if val == 0:
-        x_train1.append(x_train[ind])
-    elif val == 1:
-        x_train2.append(x_train[ind])
-    else:
-        continue        
 
 # Limit data and Scale data
-x_train1 = np.asarray(x_train1[0:1000]) / 255
-x_train2 = np.asarray(x_train2[0:1000]) / 255
-
-for i in range(7,11):
-
-    # Make xtrain_2 a percentage of x_train1
-    x_train2 = np.concatenate((x_train1[0:1000 - (i * 100)], x_train2[0:(i * 100)]), axis=0)
-
-    print(x_train1.shape)
-    print(x_train2.shape)
+x_train_m = np.asarray(x_train_m[0:1000]) / 255
+x_train_c = np.asarray(x_train_c[0:1000])
+x_train_c2 = np.asarray(x_train_c2[0:1000])
+x_train_i = np.asarray(x_train_i[0:1000]) / 255
 
 
-    x_train1 = x_train1.reshape((1000, 784))
-    x_train2 = x_train2.reshape((1000, 784))
+# Gray scale conversion (cifar only)
+x_train_c = x_train_c.dot([0.2989, 0.5870, 0.1140])
+x_train_c = x_train_c / 255
 
-    t1 = Test(784, x_train1)
-    t2 = Test(784, x_train2)
+x_train_c2 = x_train_c2.dot([0.2989, 0.5870, 0.1140])
+x_train_c2 = x_train_c2 / 255
 
-    hel = AE(t1,t2)
-    a1 = 0.758
-    a2 = 0.8916
-    a22 = (a1 * (1.0 - (i / 10.0))) + (a2 * i / 10.0)
-    print(a22)
-    a3 = (a1 + a22) / 2
-    res = hel.run(a1, a22, a3, 1)
-    x1, x2, x3 = res
-    fancy_logger(x1, x2, x3, 1.0 - i/10.0, file_name='data-v4-num-seperated')
 
-    
-    # Release memory
-    #K.clear_session()
-    exit()
+# Pad MNIST with 0.0 values (because borders are black)
+x_train_m = np.pad(x_train_m, 2, mode='constant', constant_values='0.0')
+# Extra entries get thrown in
+x_train_m = x_train_m[2:1002]
+
+x_train_i = np.pad(x_train_i, 2, mode='constant', constant_values='0.0')
+# Extra entries get thrown in
+x_train_i = x_train_i[2:1002]
+
+x_train_m = x_train_m.reshape((1000, 1024))
+x_train_c = x_train_c.reshape((1000, 1024))
+x_train_c2 = x_train_c2.reshape((1000, 1024))
+x_train_i = x_train_i.reshape((1000, 1024))
+
+
+# DONE WITH LOADING DATA
+# DO TESTING
+
+
+m =  Test(1024, x_train_m)
+c =  Test(1024, x_train_c)
+c2 = Test(1024, x_train_c2)
+i =  Test(1024, x_train_i)
+
+print(x_train_m.shape)
+print(x_train_c.shape)
+print(x_train_c2.shape)
+print(x_train_i.shape)
+
+# Could be put in loop but lazy 
+
+hel = AE(m,c)
+res = hel.run(1)
+x1, x2, x3 = res
+fancy_logger(x1, x2, x3,'m-c', file_name='data-v7-set')
+
+hel = AE(m,c2)
+res = hel.run(1)
+x1, x2, x3 = res
+fancy_logger(x1, x2, x3,'m-c2', file_name='data-v7-set')
+
+hel = AE(m,i)
+res = hel.run(1)
+x1, x2, x3 = res
+fancy_logger(x1, x2, x3,'m-i', file_name='data-v7-set')
+
+hel = AE(c,c2)
+res = hel.run(1)
+x1, x2, x3 = res
+fancy_logger(x1, x2, x3,'c-c2', file_name='data-v7-set')
+
+hel = AE(c,i)
+res = hel.run(1)
+x1, x2, x3 = res
+fancy_logger(x1, x2, x3,'c-i', file_name='data-v7-set')
+
+hel = AE(c2,i)
+res = hel.run(1)
+x1, x2, x3 = res
+fancy_logger(x1, x2, x3,'c2-i', file_name='data-v7-set')
+
 print(res)
