@@ -40,28 +40,28 @@ import csv
 
 def gen_model(input_shape, num_classes):
     model = Sequential()
-    model.add(Conv2D(1, (3,3), padding='same', input_shape=input_shape ))
+    model.add(Conv2D(32, (3,3), padding='same', input_shape=input_shape ))
     model.add(Activation('elu'))
     model.add(BatchNormalization())
-    model.add(Conv2D(1, (3,3), padding='same'))
+    model.add(Conv2D(32, (3,3), padding='same'))
     model.add(Activation('elu'))
     model.add(BatchNormalization())
     model.add(MaxPooling2D(pool_size=(2,2)))
     model.add(Dropout(0.2))
      
-    model.add(Conv2D(2, (3,3), padding='same'))
+    model.add(Conv2D(64, (3,3), padding='same'))
     model.add(Activation('elu'))
     model.add(BatchNormalization())
-    model.add(Conv2D(2, (3,3), padding='same'))
+    model.add(Conv2D(64, (3,3), padding='same'))
     model.add(Activation('elu'))
     model.add(BatchNormalization())
     model.add(MaxPooling2D(pool_size=(2,2)))
     model.add(Dropout(0.3))
      
-    model.add(Conv2D(4, (3,3), padding='same'))
+    model.add(Conv2D(128, (3,3), padding='same'))
     model.add(Activation('elu'))
     model.add(BatchNormalization())
-    model.add(Conv2D(4, (3,3), padding='same'))
+    model.add(Conv2D(128, (3,3), padding='same'))
     model.add(Activation('elu'))
     model.add(BatchNormalization())
     model.add(MaxPooling2D(pool_size=(2,2)))
@@ -75,68 +75,13 @@ def gen_model(input_shape, num_classes):
     #exit()
     return model
 
-def fancy_logger(x1, x2, x3, x4, x5, x6, overlap, file_name='data', write='a'):
+def fancy_logger(x1, overlap, file_name='data', write='a'):
     with open(file_name + '.csv', write, newline='') as csvfile:
         spamwriter = csv.writer(csvfile, delimiter=',',
                                 quotechar='|', quoting=csv.QUOTE_MINIMAL)
-        spamwriter.writerow((x1, x2, x3, x4, x5, x6, overlap))
+        spamwriter.writerow((x1, overlap))
 
-def T_A(m_data, c_data):
-    model = gen_model((28,28,1), 10)
-    hist = model.fit(m_data[0], m_data[1], epochs=10, validation_data=(m_data[2], m_data[3]), batch_size=32, validation_split=0.1, verbose=2, shuffle=True)
-    res = max(hist.history['val_acc'])
-    return res
-
-def T_B(m_data, c_data):
-    model = gen_model((32,32,1), 10)
-    hist = model.fit(c_data[0], c_data[1], epochs=10, validation_data=(c_data[2], c_data[3]), batch_size=32, validation_split=0.1, verbose=2, shuffle=True)
-    res = max(hist.history['val_acc'])
-    return res
-
-def T_AA(m_data, c_data):
-    m_data[0] = np.concatenate((m_data[0], m_data[0]),axis=1)
-    m_data[1] = np.concatenate((m_data[1], m_data[1]),axis=1)
-    m_data[2] = np.concatenate((m_data[2], m_data[2]),axis=1)
-    m_data[3] = np.concatenate((m_data[3], m_data[3]),axis=1)
-
-    model = gen_model((56,28,1), 20)
-    hist = model.fit(m_data[0], m_data[1], epochs=10, validation_data=(m_data[2], m_data[3]),   batch_size=32, validation_split=0.1, verbose=2, shuffle=True)
-    res = max(hist.history['val_acc'])
-    return res
-
-def T_BB(m_data, c_data):
-    c_data[0] = np.concatenate((c_data[0], c_data[0]),axis=1)
-    c_data[1] = np.concatenate((c_data[1], c_data[1]),axis=1)
-    c_data[2] = np.concatenate((c_data[2], c_data[2]),axis=1)
-    c_data[3] = np.concatenate((c_data[3], c_data[3]),axis=1)
-
-    model = gen_model((64,32,1), 20)
-    hist = model.fit(c_data[0], c_data[1], epochs=10, validation_data=(c_data[2], c_data[3]),   batch_size=32, validation_split=0.1, verbose=2, shuffle=True)
-    res = max(hist.history['val_acc'])
-    return res
-
-def T_AB(m_data, c_data):
-    m_data[0] = np.pad(m_data[0], pad_width=((0,0),(2,2),(2,2),(0,0)), mode='constant', constant_values='0.0')
-    m_data[2] = np.pad(m_data[2], pad_width=((0,0),(2,2),(2,2),(0,0)), mode='constant', constant_values='0.0')
-
-    m_data[0] = m_data[0][0:50000]
-    m_data[1] = m_data[1][0:50000]
-
-    print(m_data[0].shape)
-    print(c_data[0].shape)
-
-    c_data[0] = np.concatenate((c_data[0], m_data[0]),axis=1)
-    c_data[1] = np.concatenate((c_data[1], m_data[1]),axis=1)
-    c_data[2] = np.concatenate((c_data[2], m_data[2]),axis=1)
-    c_data[3] = np.concatenate((c_data[3], m_data[3]),axis=1)
-
-    model = gen_model((64,32,1), 20)
-    hist = model.fit(c_data[0], c_data[1], epochs=10, validation_data=(c_data[2], c_data[3]), batch_size=32, validation_split=0.1, verbose=2, shuffle=True)
-    res = max(hist.history['val_acc'])
-    params = model.count_params()
-    return res, params
-
-def T_A_B(m_data, c_data):
+def T_A_B(m_data, c_data, i):
     m_data[0] = np.pad(m_data[0], pad_width=((0,0),(2,2),(2,2),(0,0)), mode='constant', constant_values='0.0')
     m_data[2] = np.pad(m_data[2], pad_width=((0,0),(2,2),(2,2),(0,0)), mode='constant', constant_values='0.0')
 
@@ -145,8 +90,22 @@ def T_A_B(m_data, c_data):
     m_data[2] = m_data[2][0:50000]
     m_data[3] = m_data[3][0:50000]
 
-    print(m_data[0].shape)
-    print(c_data[0].shape)
+    n_m = 50000
+    n_c = 50000
+
+    frac_m = int(i * n_m)
+    frac_c = int((1-i) * n_c)
+
+    m_data[0] = m_data[0][0:frac_m]
+    m_data[1] = m_data[1][0:frac_m]
+    m_data[2] = m_data[2][0:frac_m]
+    m_data[3] = m_data[3][0:frac_m]
+
+    c_data[0] = c_data[0][0:frac_c]
+    c_data[1] = c_data[1][0:frac_c]
+    c_data[2] = c_data[2][0:frac_c]
+    c_data[3] = c_data[3][0:frac_c]
+    print(frac_m, frac_c)
 
     c_data[1] = np.pad(c_data[1], pad_width=((0,0),(0,10)), mode='constant', constant_values='0.0')
     c_data[3] = np.pad(c_data[3], pad_width=((0,0),(0,10)), mode='constant', constant_values='0.0')
@@ -166,6 +125,8 @@ def T_A_B(m_data, c_data):
     
 
 def main():
+
+
     (x_train_m, y_train_m), (x_test_m, y_test_m) = mnist.load_data()
     (x_train_c, y_train_c), (x_test_c, y_test_c) = cifar10.load_data()
 
@@ -190,26 +151,11 @@ def main():
     c_data[1] = to_categorical(c_data[1])
     c_data[3] = to_categorical(c_data[3])
 
-    # Train A
-    r1 = T_A(copy.deepcopy(m_data), copy.deepcopy(c_data))
-    print(r1)
-    # Train B
-    r2 = T_B(copy.deepcopy(m_data), copy.deepcopy(c_data))
-    print(r2)
-    # Train AA
-    r3 = T_AA(copy.deepcopy(m_data), copy.deepcopy(c_data))
-    print(r3) 
-    # Train BB
-    r4 = T_BB(copy.deepcopy(m_data), copy.deepcopy(c_data))
-    print(r4)
-    # Train AB
-    r5, p = T_AB(copy.deepcopy(m_data), copy.deepcopy(c_data))
-    print(r5, p)
-    # Train (A,B)
-    r6 = T_A_B(copy.deepcopy(m_data), copy.deepcopy(c_data))
-    print(r6)
+    for i in range(7,11):
 
-    fancy_logger(r1, r2, r3, r4, r5, r6, p)
+        r1 = T_A_B(copy.deepcopy(m_data), copy.deepcopy(c_data), i/10)
+
+        fancy_logger(r1, i / 10)
 
 
 

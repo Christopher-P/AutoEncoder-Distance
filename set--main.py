@@ -16,7 +16,7 @@ import os
 #os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # or any {'0', '1', '2'}
 
 from keras.datasets import mnist, cifar10, cifar100, fashion_mnist
-from keras.layers import Input, Dense, Flatten
+from keras.layers import Input, Dense, Flatten, Conv2D, Activation, BatchNormalization, MaxPooling2D, Dropout
 from keras.models import Model, Sequential
 from keras import backend as K
 
@@ -62,7 +62,7 @@ class Test:
         self.data = data
 
     def combine(self, dataA, dataB):
-        self.data = np.concatenate((dataA, dataB),axis=1)
+        self.data = np.concatenate((dataA, dataB),axis=0)
 
 class AE:
 
@@ -100,25 +100,54 @@ class AE:
         # Return results
         return (x1, x2, x3)
 
-    def gen_model(self, test):
+    def gen_model(self):
         model = Sequential()
-        model.add(Dense(test.size, activation='relu', input_shape=(test.size, )))
-        model.add(Dense(200, activation='relu'))
-        model.add(Dense(test.size, activation='sigmoid'))
+        model.add(Conv2D(32, (3,3), padding='same', input_shape=(32, 32, 1) ))
+        model.add(Activation('elu'))
+        model.add(BatchNormalization())
+        model.add(Conv2D(32, (3,3), padding='same'))
+        model.add(Activation('elu'))
+        model.add(BatchNormalization())
+        model.add(MaxPooling2D(pool_size=(2,2)))
+        model.add(Dropout(0.2))
+         
+        model.add(Conv2D(64, (3,3), padding='same'))
+        model.add(Activation('elu'))
+        model.add(BatchNormalization())
+        model.add(Conv2D(64, (3,3), padding='same'))
+        model.add(Activation('elu'))
+        model.add(BatchNormalization())
+        model.add(MaxPooling2D(pool_size=(2,2)))
+        model.add(Dropout(0.3))
+         
+        model.add(Conv2D(128, (3,3), padding='same'))
+        model.add(Activation('elu'))
+        model.add(BatchNormalization())
+        model.add(Conv2D(128, (3,3), padding='same'))
+        model.add(Activation('elu'))
+        model.add(BatchNormalization())
+        model.add(MaxPooling2D(pool_size=(2,2)))
+        model.add(Dropout(0.4))
+         
+        model.add(Flatten())
+        model.add(Dense(10, activation='softmax'))
 
-        model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
+        model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+        #model.summary()
+        #exit()
         return model
+
 
     def search(self, test):
    
-        model = self.gen_model(test)
+        model = self.gen_model()
         result = self.eval(test, model)
 
         return result
 
 
     def eval(self, test, model):
-        history = model.fit(test.data, test.data, epochs=12, batch_size=10, validation_split=0.1, verbose=0,shuffle=True)
+        history = model.fit(test.data, test.data, epochs=10, batch_size=10, validation_split=0.1, verbose=0,shuffle=True)
 
         n = max(history.history['acc'])
         print(n)
@@ -165,10 +194,11 @@ x_train_i = np.pad(x_train_i, 2, mode='constant', constant_values='0.0')
 # Extra entries get thrown in
 x_train_i = x_train_i[2:1002]
 
-x_train_m = x_train_m.reshape((1000, 1024))
-x_train_c = x_train_c.reshape((1000, 1024))
-x_train_c2 = x_train_c2.reshape((1000, 1024))
-x_train_i = x_train_i.reshape((1000, 1024))
+
+x_train_m = x_train_m.reshape((1000, 32, 32, 1))
+x_train_c = x_train_c.reshape((1000, 32, 32, 1))
+x_train_c2 = x_train_c2.reshape((1000, 32, 32, 1))
+x_train_i = x_train_i.reshape((1000, 32, 32, 1))
 
 
 # DONE WITH LOADING DATA
