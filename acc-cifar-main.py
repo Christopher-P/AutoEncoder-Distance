@@ -152,6 +152,8 @@ x_train_m = np.pad(x_train_m, 2, mode='constant', constant_values='0.0')
 # Extra entries get thrown in
 x_train_m = x_train_m[2:1002]
 
+print(x_train_m.shape)
+
 for i in range(0,11):
 
     # Make xtrain_2 a percentage of x_train1
