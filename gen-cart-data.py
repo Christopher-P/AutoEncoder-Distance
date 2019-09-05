@@ -67,6 +67,8 @@ def thread_gen(n):
             im2 = im[150:350,265:335]
             img = Image.fromarray(im2)
             img2 = img.resize((32,32), Image.ANTIALIAS)
+            print(np.array(img2))
+            exit()
             img2.save('cart_data/' + str(j + (i * 200) + (n * 10000)) + '.png')
 
             # Save action
