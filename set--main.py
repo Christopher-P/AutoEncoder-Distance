@@ -19,6 +19,7 @@ from keras.datasets import mnist, cifar10, cifar100, fashion_mnist
 from keras.layers import Input, Dense, Flatten, Conv2D, Activation, BatchNormalization, MaxPooling2D, Dropout
 from keras.models import Model, Sequential
 from keras import backend as K
+from keras.utils import to_categorical
 
 from numpy.random import seed
 from tensorflow import set_random_seed
@@ -63,6 +64,20 @@ class Test:
 
     def combine(self, dataA, dataB):
         self.data = np.concatenate((dataA, dataB),axis=0)
+
+# Incoming data is selected from first 25k, joined, shuffled, returns
+# Data should be same shapes
+def comb(a_test, a_labels, b_test, b_labels):
+    a_t_temp = copy.deepcopy(a_test)
+    
+    return c
+
+def T_A_B(m_data):
+    n = m_data[1].shape[1]
+    model = gen_model((32,32,1), n)
+    hist = model.fit(m_data[0], m_data[1], epochs=10, validation_data=(m_data[2], m_data[3]), batch_size=32, validation_split=0.1, verbose=2, shuffle=True)
+    res = max(hist.history['val_acc'])
+    return res
 
 class AE:
 
@@ -164,20 +179,55 @@ def fancy_logger(x1, x2, x3, overlap, file_name='data', write='a'):
                                 quotechar='|', quoting=csv.QUOTE_MINIMAL)
         spamwriter.writerow((x1, x2, x3, overlap))
 
-(x_train_m, y_train), (x_test, y_test) = mnist.load_data()
-(x_train_c, y_train), (x_test, y_test) = cifar10.load_data()
-(x_train_c2, y_train), (x_test, y_test) = cifar100.load_data(label_mode='fine')
-(x_train_i, y_train), (x_test, y_test) = fashion_mnist.load_data()
 
 
-# Limit data and Scale data
-x_train_m = np.asarray(x_train_m[0:1000]) / 255
-x_train_c = np.asarray(x_train_c[0:1000])
-x_train_c2 = np.asarray(x_train_c2[0:1000])
-x_train_i = np.asarray(x_train_i[0:1000]) / 255
+(x_train_m, y_train_m), (x_test_m, y_test_m) = mnist.load_data()
+(x_train_c, y_train_c), (x_test_c, y_test_c) = cifar10.load_data()
+(x_train_c2, y_trainc2), (x_testc2, y_testc2) = cifar100.load_data(label_mode='fine')
+(x_train_f, y_train_f), (x_test_f, y_test_f) = fashion_mnist.load_data()
 
 
-# Gray scale conversion (cifar only)
+## LOAD CARTPOLE DATA HERE
+import cv2
+
+x_train_cp_l = []
+for i in range(50000):
+    im = cv2.imread("cart_data/" + str(i) + ".png")
+    x_train_cp_l.append(im)
+
+x_train_cp = np.asarray(x_train_cp_l)
+
+actions = []
+for i in range(5):
+    x_test_cp = np.load('actions_' + str(i) + '.npy')
+    x_test_cp = x_test_cp.reshape(10000,1)
+    actions.append(x_test_cp.tolist())
+
+x_test_cp = np.asarray(actions)
+x_test_cp = x_test_cp.reshape(50000, )
+
+# Format CP data
+x_train_cp = x_train_cp.dot([0.2989, 0.5870, 0.1140])
+x_train_cp = x_train_cp / 255
+
+## DONE LOADING CARTPOLE
+
+
+## Limit data to 50k and Scale data
+x_train_m = np.asarray(x_train_m[0:50000]) / 255
+x_train_c = np.asarray(x_train_c)
+x_train_c2 = np.asarray(x_train_c2)
+x_train_f = np.asarray(x_train_f[0:50000]) / 255
+
+# Do same for labels and convert to one-hot
+y_train_m = to_categorical(y_train_m[0:50000])
+y_train_c = to_categorical(y_train_c[0:50000])
+y_train_c2 = to_categorical(y_train_c2[0:50000])
+y_train_f = to_categorical(y_train_f[0:50000])
+x_test_cp = to_categorical(x_test_cp[0:50000])
+
+
+# Gray scale conversion (cifars only)
 x_train_c = x_train_c.dot([0.2989, 0.5870, 0.1140])
 x_train_c = x_train_c / 255
 
@@ -188,32 +238,36 @@ x_train_c2 = x_train_c2 / 255
 # Pad MNIST with 0.0 values (because borders are black)
 x_train_m = np.pad(x_train_m, 2, mode='constant', constant_values='0.0')
 # Extra entries get thrown in
-x_train_m = x_train_m[2:1002]
+x_train_m = x_train_m[2:50002]
 
-x_train_i = np.pad(x_train_i, 2, mode='constant', constant_values='0.0')
+x_train_f = np.pad(x_train_f, 2, mode='constant', constant_values='0.0')
 # Extra entries get thrown in
-x_train_i = x_train_i[2:1002]
+x_train_f = x_train_f[2:50002]
 
 
-x_train_m = x_train_m.reshape((1000, 32, 32, 1))
-x_train_c = x_train_c.reshape((1000, 32, 32, 1))
-x_train_c2 = x_train_c2.reshape((1000, 32, 32, 1))
-x_train_i = x_train_i.reshape((1000, 32, 32, 1))
+x_train_m = x_train_m.reshape((50000, 32, 32, 1))
+x_train_c = x_train_c.reshape((50000, 32, 32, 1))
+x_train_c2 = x_train_c2.reshape((50000, 32, 32, 1))
+x_train_f = x_train_f.reshape((50000, 32, 32, 1))
+x_train_cp = x_train_cp.reshape((50000, 32, 32, 1))
 
 
 # DONE WITH LOADING DATA
 # DO TESTING
 
 
-m =  Test(1024, x_train_m)
-c =  Test(1024, x_train_c)
-c2 = Test(1024, x_train_c2)
-i =  Test(1024, x_train_i)
+m =  Test(50000, x_train_m)
+c =  Test(50000, x_train_c)
+c2 = Test(50000, x_train_c2)
+f =  Test(50000, x_train_f)
 
 print(x_train_m.shape)
 print(x_train_c.shape)
 print(x_train_c2.shape)
-print(x_train_i.shape)
+print(x_train_f.shape)
+print(x_train_cp.shape)
+
+exit()
 
 # Could be put in loop but lazy 
 

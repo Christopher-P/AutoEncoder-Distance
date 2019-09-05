@@ -88,8 +88,44 @@ def T_A_B(m_data):
     res = max(hist.history['val_acc'])
     return res
     
+def comb(data, cartpole_data):
+    # Prep gym
+    import gym
+    env = gym.make('CartPole-v0')
+    m_data = [[],[],[],[]]
+    
+    
+    # Train
+    model = gen_model((32,32,1), n)
+    hist = model.fit(m_data[0], m_data[1], epochs=10, validation_data=(m_data[2], m_data[3]), batch_size=32, validation_split=0.1, verbose=2, shuffle=True)
+    
+    # Special fit
+    res = max(hist.history['val_acc'])
+    return res
+    
 
 def main():
+
+    ## LOAD CARTPOLE DATA HERE
+    import cv2
+
+    x_train_cp_l = []
+    for i in range(60000):
+        im = cv2.imread("../cart_data/" + str(i) + ".png")
+        x_train_cp_l.append(im)
+
+    x_train_cp = np.asarray(x_train_cp_l)
+
+    actions = []
+    for i in range(6):
+        x_test_cp = np.load('../actions_' + str(i) + '.npy')
+        x_test_cp = x_test_cp.reshape(10000,1)
+        actions.append(x_test_cp.tolist())
+    
+    x_test_cp = np.asarray(actions)
+    x_test_cp = x_test_cp.reshape(60000, )
+
+    ## DONE LOADING CARTPOLE
 
 
     (x_train_m, y_train_m), (x_test_m, y_test_m) = mnist.load_data()
@@ -160,13 +196,26 @@ def main():
     c2_data[3] = to_categorical(c2_data[3])
 
 
-    r1 = T_A_B(copy.deepcopy(f_data))
+    ## Format CP data
+    x_train_cp = x_train_cp.dot([0.2126, 0.7152, 0.0722]) / 255
+    cp_data[0] = x_train_cp[0:50000]
+    cp_data[1] = x_test_cp[0:50000]
+    cp_data[0] = x_train_cp[0:50000]
+    cp_data[1] = x_test_cp[0:50000]
+    
+    r1 = T_A_B(copy.deepcopy(x_train_cp))
     fancy_logger(r1, 'f')
-    r1 = T_A_B(copy.deepcopy(c2_data))
-    fancy_logger(r1, 'c')
+
+    exit()
+
+    #r1 = T_A_B(copy.deepcopy(f_data))
+    #fancy_logger(r1, 'f')
+    #r1 = T_A_B(copy.deepcopy(c2_data))
+    #fancy_logger(r1, 'c')
 
 
 
 if __name__== "__main__":
     main()
 
+    
